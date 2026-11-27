@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#191a33">
+<title>Лунный календарь 2027 · Светлана</title>
+<style>
+:root {
+  color-scheme: light;
+  --text: #26263d;
+  --muted: #5a5971;
+  --border: #dddcef;
+  --accent: #47368b;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: #efeff9;
+  color: var(--text);
+  font: 16px/1.5 system-ui, sans-serif;
+}
+main, footer { max-width: 1040px; margin: auto; padding: 0 clamp(12px, 4vw, 32px); }
+header {
+  margin: 20px 0 16px;
+  padding: clamp(22px, 5vw, 48px);
+  border-radius: 24px;
+  color: #faf7ff;
+  background: radial-gradient(ellipse at 90% 20%, #534281, transparent 62%), #191a33;
+}
+header h1 { font: 400 clamp(32px, 6vw, 58px)/1.1 Georgia, serif; margin: 0 0 12px; }
+header p { margin: 6px 0 0; color: #e1dbfa; }
+header a { color: #f6dcaa; }
+a { color: var(--accent); text-underline-offset: 3px; }
+section {
+  margin-bottom: 16px;
+  padding: clamp(12px, 3vw, 24px);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: #fcfbff;
+}
+.controls, .table-heading { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.table-heading { justify-content: space-between; margin-bottom: 14px; }
+button, input, select {
+  min-height: 44px;
+  max-width: 100%;
+  padding: 7px 10px;
+  border: 1px solid #bcb9d5;
+  border-radius: 10px;
+  background: white;
+  color: inherit;
+  font: inherit;
+}
+button { min-width: 46px; cursor: pointer; font-size: 22px; }
+button:disabled { opacity: .48; cursor: default; }
+:focus-visible { outline: 3px solid #7b61cc; outline-offset: 3px; }
+h2, h3, p { margin: 0; }
+h2 { font: 400 clamp(25px, 4vw, 36px)/1.2 Georgia, serif; }
+#day-title { margin: 16px 0 4px; }
+.summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
+.summary article { padding: 14px 16px; border-radius: 14px; }
+.summary p { margin: 6px 0 0; }
+.good { color: #195244; background: #e4f4ee; }
+.bad { color: #882c48; background: #fbeaf0; }
+.neutral { color: #53472f; background: #f3efe5; }
+.meta, .note, footer { color: var(--muted); }
+.note { font-size: 14px; margin-top: 14px; }
+table { width: 100%; border-collapse: collapse; font-size: 15px; }
+th, td { text-align: left; vertical-align: top; padding: 9px 7px; border-bottom: 1px solid var(--border); }
+thead { background: #ece9f9; }
+tbody th { font-weight: 500; }
+.category th { background: #f2f0fb; color: var(--accent); font-weight: 700; }
+.mark { display: inline-block; padding: 3px 7px; border-radius: 8px; font-weight: 650; }
+footer { padding-bottom: 24px; font-size: 14px; }
+@media (max-width: 580px) {
+  .summary { grid-template-columns: 1fr; }
+  table { table-layout: fixed; font-size: 13px; }
+  thead th:first-child { width: 39%; }
+  th, td { padding: 7px 4px; overflow-wrap: anywhere; }
+  .mark { font-size: 12px; padding: 3px 4px; max-width: 100%; }
+}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>☾ Лунный календарь 2027</h1>
+    <p>Знак Луны и рекомендации на каждый день</p>
+    <p><a href="https://t.me/Svetlana_taronumerolog">@Svetlana_taronumerolog</a></p>
+  </header>
+
+  <section aria-labelledby="day-title">
+    <div class="controls">
+      <button id="prev" type="button" aria-label="Предыдущий день">‹</button>
+      <input id="date" type="date" min="2027-01-01" max="2027-12-31" aria-label="Выберите дату">
+      <button id="next" type="button" aria-label="Следующий день">›</button>
+    </div>
+    <h2 id="day-title" aria-live="polite"></h2>
+    <p id="moon" class="meta"></p>
+    <div class="summary">
+      <article class="good"><h3>✓ Благоприятно</h3><div id="good"></div></article>
+      <article class="bad"><h3>× Неблагоприятно</h3><div id="bad"></div></article>
+    </div>
+  </section>
+
+  <section aria-labelledby="table-title">
+    <div class="table-heading">
+      <h2 id="table-title">Оценка дел</h2>
+      <select id="filter" aria-label="Категория дел"><option value="">Все категории</option></select>
+    </div>
+    <table><thead id="columns"></thead><tbody id="ratings"></tbody></table>
+    <p class="note">Рекомендации составлены по астрологической традиции. Время указано для Самары (UTC+4).</p>
+  </section>
+  <noscript>Для выбора даты и просмотра оценок включите JavaScript в браузере.</noscript>
+</main>
+<footer>
+  <a href="https://github.com/cosinekitty/astronomy">Расчёт положения Луны</a> ·
+  <a href="https://cafeastrology.com/whenthemoonisin.html">Астрологические трактовки</a>
+</footer>
+<script>
+'use strict';
+
+const signs = ['Овен','Телец','Близнецы','Рак','Лев','Дева',
+               'Весы','Скорпион','Стрелец','Козерог','Водолей','Рыбы'];
+
+// Номер дня от 1 января (0) и время перехода по Самаре.
+const ingressData = `
+0=1416 3=0057 5=1317 8=0211 10=1436 13=0113 15=0844 17=1233
+19=1321 21=1245 23=1245 25=1512 27=2121 30=0714 32=1933 35=0828
+37=2032 40=0649 42=1444 44=1959 46=2238 48=2331 50=2359 53=0144
+55=0624 57=1452 60=0235 62=1532 65=0325 67=1302 69=2016 72=0130
+74=0511 76=0741 78=0937 80=1202 82=1618 84=2343 87=1033 89=2320
+92=1125 94=2048 97=0310 99=0721 101=1032 103=1330 105=1639 107=2022
+110=0121 112=0837 114=1852 117=0724 119=1952 122=0543 124=1153 126=1506
+128=1659 130=1900 132=2205 135=0233 137=0833 139=1627 142=0243 144=1505
+147=0355 149=1439 151=2133 154=0043 156=0139 158=0213 160=0400 162=0757
+164=1417 166=2253 169=0935 171=2200 174=1101 176=2235 179=0646 181=1056
+183=1158 185=1140 187=1157 189=1424 191=1955 194=0433 196=1539 199=0415
+201=1714 204=0509 206=1428 208=2010 210=2225 212=2225 214=2157 216=2255
+219=0253 221=1036 223=2134 226=1020 228=2312 231=1054 233=2033 236=0326
+238=0721 240=0842 242=0844 244=0907 246=1144 248=1801 251=0412 253=1650
+256=0539 258=1656 261=0205 263=0906 265=1402 267=1700 269=1828 271=1930
+273=2145 276=0256 278=1159 281=0010 283=1301 286=0010 288=0837 290=1446
+292=1925 294=2303 297=0154 299=0421 301=0723 303=1224 305=2041 308=0813
+310=2109 313=0838 315=1658 317=2214 320=0139 322=0428 324=0725 326=1052
+328=1510 330=2101 333=0518 335=1626 338=0520 340=1730 343=0236 345=0755
+347=1024 349=1141 351=1317 353=1613 355=2100 358=0350 360=1251 363=0004`;
+
+// После знака равенства: номер фазы, затем часы и минуты.
+const phaseData = `
+7=00025 15=10035 21=21618 28=31456 36=01957 44=11159 51=20324 58=30917
+66=01330 73=12026 80=21444 88=30455 96=00352 103=10257 110=20228 118=30019
+125=01459 132=10844 139=21500 147=31759 154=02341 161=11457 169=20445
+177=30855 184=00703 190=12240 198=21946 206=32055 213=01406 220=10855
+228=21129 236=30628 242=02142 249=12232 258=20304 265=31421 272=00637
+279=11548 287=21748 294=32130 301=01737 309=11201 317=20726 324=30449
+331=00725 339=10923 346=22009 353=31311 361=00013`;
+
+const phaseNames = ['Новолуние', 'Первая четверть', 'Полнолуние', 'Последняя четверть'];
+const parse = data => new Map(data.trim().split(/\s+/).map(item => {
+  const [day, value] = item.split('=');
+  return [Number(day), value];
+}));
+const ingresses = parse(ingressData);
+const phases = parse(phaseData);
+const minutes = time => Number(time.slice(0, 2)) * 60 + Number(time.slice(2));
+const clock = time => time.slice(0, 2) + ':' + time.slice(2);
+
+const categories = {
+  'Работа и дела': [
+    ['Обсудить рабочие планы', [2,6,9,10], [0,7]],
+    ['Обновить резюме или портфолио', [4,5,9], [11]],
+    ['Согласовать детали проекта', [5,6,9], [0,8,11]],
+    ['Сделать первый шаг в новом проекте', [0,8,10], [1,7], 'start'],
+    ['Разобрать документы и почту', [2,5,9], [8,11], 'finish'],
+    ['Проверить расходы и порядок в бюджете', [1,5,7,9], [0,11]]
+  ],
+  'Дом и быт': [
+    ['Устроить уборку и разобрать вещи', [5,7,9], [8,11], 'finish'],
+    ['Обновить интерьер или декор', [1,3,6], [0,7]],
+    ['Запланировать работы по дому', [1,5,9], [2,11]],
+    ['Сделать спонтанные покупки', [1,6], [0,8,11]]
+  ],
+  'Отношения': [
+    ['Провести время с семьёй', [1,3,6], [0,10]],
+    ['Устроить свидание или встречу', [3,4,6], [5,9]],
+    ['Познакомиться с новыми людьми', [2,6,8,10], [7,9], 'start'],
+    ['Обсудить сложный вопрос вдвоём', [3,6,7], [0,4]]
+  ],
+  'Красота и творчество': [
+    ['Выбрать новый образ или причёску', [1,4,6], [5,9]],
+    ['Заняться рисованием, музыкой или фото', [4,6,11], [5,9]],
+    ['Показать свою работу или выступить', [2,4,8], [3,7]]
+  ],
+  'Учёба и развитие': [
+    ['Начать курс или освоить новый навык', [0,2,8,10], [1,11], 'start'],
+    ['Повторить материал и дописать конспекты', [2,5,9], [0,4], 'finish'],
+    ['Вести дневник и подводить итоги', [3,7,11], [0,4], 'finish'],
+    ['Обменяться идеями или устроить мозговой штурм', [2,8,10], [1,9]]
+  ],
+  'Поездки и отдых': [
+    ['Спланировать маршрут или короткую поездку', [2,5,8], [3,11]],
+    ['Выбраться на природу', [1,3,8], [5,9]],
+    ['Запланировать спокойный отдых', [1,3,11], [0,4]],
+    ['Устроить встречу с друзьями', [2,4,10], [7,9]]
+  ]
+};
+
+const labels = {
+  1: ['✓ Благоприятно', 'good'],
+  0: ['○ Нейтрально', 'neutral'],
+  '-1': ['× Неблагоприятно', 'bad']
+};
+
+const start = Date.UTC(2027, 0, 1);
+const dayMs = 86400000;
+const formatter = new Intl.DateTimeFormat('ru-RU', {dateStyle:'full', timeZone:'UTC'});
+const byId = id => document.getElementById(id);
+const dateInput = byId('date');
+const filter = byId('filter');
+const groups = Object.entries(categories);
+const allActivities = groups.flatMap(([, activities]) => activities);
+const days = [];
+let sign = 6;
+let waxing = false;
+
+for (let day = 0; day < 365; day++) {
+  const ingress = ingresses.get(day);
+  const phase = phases.get(day);
+  const phaseIndex = phase ? Number(phase[0]) : null;
+  const phaseTime = phase ? minutes(phase.slice(1)) : null;
+  const changesGrowth = phaseIndex === 0 || phaseIndex === 2;
+  const at = minute => changesGrowth && minute >= phaseTime ? phaseIndex === 0 : waxing;
+  const oldSign = sign;
+  if (ingress) sign = (sign + 1) % signs.length;
+  const split = ingress && ingress !== '0000';
+  const cut = split ? minutes(ingress) : 0;
+  const periods = split ? [
+    {sign: oldSign, label: 'До ' + clock(ingress), waxing: at(cut / 2)},
+    {sign, label: 'С ' + clock(ingress), waxing: at((cut + 1440) / 2)}
+  ] : [{sign, label: 'Весь день', waxing: at(720)}];
+  const phaseText = phase
+    ? phaseNames[phaseIndex] + ' в ' + clock(phase.slice(1))
+    : at(720) ? 'Растущая Луна' : 'Убывающая Луна';
+  const signText = split
+    ? signs[oldSign] + ' → ' + signs[sign] + ' в ' + clock(ingress)
+    : signs[sign];
+  const date = new Date(start + day * dayMs);
+  days.push({date, iso: date.toISOString().slice(0, 10), periods, phaseText, signText});
+  if (changesGrowth) waxing = phaseIndex === 0;
+}
+
+function element(tag, text) {
+  const node = document.createElement(tag);
+  node.textContent = text;
+  return node;
+}
+
+function rating(activity, period) {
+  const [, favorable, unfavorable, phase] = activity;
+  if (unfavorable.includes(period.sign)) return -1;
+  if (!favorable.includes(period.sign)) return 0;
+  if (phase === 'start' && !period.waxing) return 0;
+  if (phase === 'finish' && period.waxing) return 0;
+  return 1;
+}
+
+let index = 0;
+
+function render() {
+  const day = days[index];
+  dateInput.value = day.iso;
+  byId('prev').disabled = index === 0;
+  byId('next').disabled = index === days.length - 1;
+  byId('day-title').textContent = formatter.format(day.date);
+  byId('moon').textContent = 'Луна · ' + day.signText + ' · ' + day.phaseText;
+
+  for (const [id, score] of [['good', 1], ['bad', -1]]) {
+    const lines = day.periods.map(period => {
+      const choices = allActivities.filter(activity => rating(activity, period) === score);
+      const offset = choices.length ? index % choices.length : 0;
+      const picks = choices.slice(offset).concat(choices.slice(0, offset))
+        .slice(0, 3).map(activity => activity[0]);
+      const prefix = day.periods.length > 1 ? period.label + ' — ' : '';
+      return element('p', prefix + (picks.join(' · ') || 'Все оценки в таблице ниже'));
+    });
+    byId(id).replaceChildren(...lines);
+  }
+
+  const heading = document.createElement('tr');
+  const titles = ['Дело', ...day.periods.map(period =>
+    day.periods.length > 1 ? period.label : 'Оценка')];
+  for (const title of titles) {
+    const cell = element('th', title);
+    cell.scope = 'col';
+    heading.append(cell);
+  }
+  byId('columns').replaceChildren(heading);
+
+  const body = document.createDocumentFragment();
+  for (const [category, activities] of groups) {
+    if (filter.value && filter.value !== category) continue;
+
+    const groupRow = document.createElement('tr');
+    groupRow.className = 'category';
+    const groupTitle = element('th', category);
+    groupTitle.colSpan = titles.length;
+    groupRow.append(groupTitle);
+    body.append(groupRow);
+
+    for (const activity of activities) {
+      const row = document.createElement('tr');
+      const name = element('th', activity[0]);
+      name.scope = 'row';
+      row.append(name);
+      for (const period of day.periods) {
+        const [label, color] = labels[rating(activity, period)];
+        const badge = element('span', label);
+        badge.className = 'mark ' + color;
+        const cell = document.createElement('td');
+        cell.append(badge);
+        row.append(cell);
+      }
+      body.append(row);
+    }
+  }
+  byId('ratings').replaceChildren(body);
+}
+
+for (const [category] of groups) {
+  const option = element('option', category);
+  option.value = category;
+  filter.append(option);
+}
+
+function selectDay(next) {
+  if (next >= 0 && next < days.length) index = next;
+  render();
+}
+
+byId('prev').addEventListener('click', () => selectDay(index - 1));
+byId('next').addEventListener('click', () => selectDay(index + 1));
+dateInput.addEventListener('change', () => selectDay(days.findIndex(day => day.iso === dateInput.value)));
+filter.addEventListener('change', render);
+render();
+</script>
+</body>
+</html>
